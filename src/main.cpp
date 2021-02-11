@@ -19,6 +19,11 @@ int buttonState = 0;
 unsigned int chargeTime = 0;
 unsigned long idleTime = 0;
 
+int measurementValue = 0;
+float voltage;
+unsigned int VoltageSampleTime = 0;
+unsigned int VoltageSampleFrequency = 0;
+
 NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin);
 // NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> barrel(PixelCount2, PixelPin2);
 
@@ -30,14 +35,7 @@ int8_t moveDir = 1;     // track the direction of movement
 // uncomment one of the lines below to see the effects of
 // changing the ease function on the movement animation
 AnimEaseFunction moveEase =
-    //      NeoEase::Linear;
-    //      NeoEase::QuadraticInOut;
-    //      NeoEase::CubicInOut;
     NeoEase::QuarticInOut;
-//      NeoEase::QuinticInOut;
-//      NeoEase::SinusoidalInOut;
-//      NeoEase::ExponentialInOut;
-//      NeoEase::CircularInOut;
 
 void FadeAll(uint8_t darkenBy)
 {
@@ -119,10 +117,23 @@ void StopAnimations()
     }
 }
 
+void CheckVoltage()
+{
+    VoltageSampleTime++;
+
+    if (VoltageSampleTime >= VoltageSampleFrequency)
+    {
+        measurementValue = analogRead(A0);
+        voltage = measurementValue * 5.0 / 1023;
+        VoltageSampleTime = 0;
+    }
+}
+
 void setup()
 {
 
     chargeStep = maxCharge / PixelCount; // should be 2250 loops, ~2secs
+    VoltageSampleFrequency = chargeStep * PixelCount + 1;
 
     // initialize the pushbutton pin as an input:
     pinMode(triggerPin, INPUT);
@@ -131,62 +142,67 @@ void setup()
     strip.Begin(); // initialize the strip
     strip.Show();  // make sure it is visible
     // Serial.begin(9600);
+    measurementValue = analogRead(A0);
+    voltage = measurementValue * 5.0 / 1023;
 }
 
 void loop()
 {
+    CheckVoltage();
+    if (voltage > 4)
+    {
 
-    buttonState = digitalRead(triggerPin);
-
-    if (buttonState)
-    { // button is not pressed
-        if (lastPixelCharged > 0)
-        { // if we had it charged, discharge
-            strip.ClearTo(HarshWhite);
-            strip.Show();
-            delay(10 * lastPixelCharged);
-        }
-
-        // reset counters, clear all the pixels
-        chargeTime = 0;
-        lastPixelCharged = 0;
-        strip.ClearTo(ClearPixel);
-        strip.Show();
-
-// deciding to start the idle animation or not
-        if (idleTime >= idleTimeout)
-        {
-
-            if (animations.IsAnimating())
-            { // if animation is in progress, update it
-                animations.UpdateAnimations();
+        buttonState = digitalRead(triggerPin);
+        if (buttonState)
+        { // button is not pressed
+            if (lastPixelCharged > 0)
+            { // if we had it charged, discharge
+                strip.ClearTo(HarshWhite);
                 strip.Show();
+                delay(10 * lastPixelCharged);
+            }
+
+            // reset counters, clear all the pixels
+            chargeTime = 0;
+            lastPixelCharged = 0;
+            strip.ClearTo(ClearPixel);
+            strip.Show();
+
+            // deciding to start the idle animation or not
+            if (idleTime >= idleTimeout)
+            {
+
+                if (animations.IsAnimating())
+                { // if animation is in progress, update it
+                    animations.UpdateAnimations();
+                    strip.Show();
+                }
+                else
+                { // if not in progress, start it
+                    SetupAnimations();
+                }
             }
             else
-            { // if not in progress, start it
-                SetupAnimations();
+            { // being sure to stop all the animations for the idle time
+                StopAnimations();
+                idleTime++;
             }
         }
         else
-        { // being sure to stop all the animations for the idle time
-            StopAnimations();
-            idleTime++;
-        }
-    }
-    else
-    { // trigger button is pressed
-        chargeTime++;
-        idleTime = 0; // we're not idle, we're charging
-        StopAnimations(); // being sure to clear all animations
+        { // trigger button is pressed
+            chargeTime++;
+            idleTime = 0;     // we're not idle, we're charging
+            StopAnimations(); // being sure to clear all animations
 
-        if (chargeTime % chargeStep == 0)
-        { // deciding if we can update the charge level
-            for (unsigned int i = 0; i <= lastPixelCharged; i++)
-            { // lights up to the charged point
-                strip.SetPixelColor(i, CylonEyeColor);
+            if (chargeTime % chargeStep == 0)
+            { // deciding if we can update the charge level
+                for (unsigned int i = 0; i <= lastPixelCharged; i++)
+                { // lights up to the charged point
+                    strip.SetPixelColor(i, CylonEyeColor);
+                }
+                lastPixelCharged++;
+                strip.Show();
             }
-            lastPixelCharged++;
-            strip.Show();
         }
     }
 }
