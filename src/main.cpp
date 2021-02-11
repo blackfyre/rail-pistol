@@ -3,7 +3,7 @@
 #include <NeoPixelAnimator.h>
 
 const uint16_t PixelCount = 16; // make sure to set this to the number of pixels in your strip
-const uint16_t PixelCount2 = 1; // make sure to set this to the number of pixels in your strip
+const uint16_t PixelCount2 = 8; // make sure to set this to the number of pixels in your strip
 const uint8_t PixelPin = 6;     // make sure to set this to the correct pin, ignored for Esp8266
 const uint8_t PixelPin2 = 5;    // make sure to set this to the correct pin, ignored for Esp8266
 const RgbColor CylonEyeColor(HtmlColor(0x7f0000));
@@ -20,12 +20,12 @@ unsigned int chargeTime = 0;
 unsigned long idleTime = 0;
 
 int measurementValue = 0;
-float voltage;
+float voltage = 0;
 unsigned int VoltageSampleTime = 0;
 unsigned int VoltageSampleFrequency = 0;
 
 NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin);
-// NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> barrel(PixelCount2, PixelPin2);
+NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> barrel(PixelCount2, PixelPin2);
 
 NeoPixelAnimator animations(2); // only ever need 2 animations
 
@@ -148,16 +148,16 @@ void setup()
 
 void loop()
 {
-    CheckVoltage();
     if (voltage > 4)
     {
-
         buttonState = digitalRead(triggerPin);
         if (buttonState)
         { // button is not pressed
             if (lastPixelCharged > 0)
             { // if we had it charged, discharge
                 strip.ClearTo(HarshWhite);
+                barrel.ClearTo(HarshWhite);
+                barrel.Show();
                 strip.Show();
                 delay(10 * lastPixelCharged);
             }
@@ -167,6 +167,8 @@ void loop()
             lastPixelCharged = 0;
             strip.ClearTo(ClearPixel);
             strip.Show();
+            barrel.ClearTo(ClearPixel);
+            barrel.Show();
 
             // deciding to start the idle animation or not
             if (idleTime >= idleTimeout)
@@ -187,6 +189,8 @@ void loop()
                 StopAnimations();
                 idleTime++;
             }
+
+            CheckVoltage();
         }
         else
         { // trigger button is pressed
