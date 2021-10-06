@@ -2,13 +2,13 @@
 #include <NeoPixelBus.h>
 #include <NeoPixelAnimator.h>
 
-const uint16_t PixelCount = 16; // make sure to set this to the number of pixels in your strip
-const uint16_t PixelCount2 = 8; // make sure to set this to the number of pixels in your strip
+const uint16_t PixelCount = 5; // make sure to set this to the number of pixels in your strip
+const uint16_t PixelCount2 = 1; // make sure to set this to the number of pixels in your strip
 const uint8_t PixelPin = 6;     // make sure to set this to the correct pin, ignored for Esp8266
 const uint8_t PixelPin2 = 5;    // make sure to set this to the correct pin, ignored for Esp8266
-const RgbColor CylonEyeColor(HtmlColor(0x7f0000));
-const RgbColor HarshWhite(HtmlColor(0xddddff));
-const RgbColor ClearPixel(HtmlColor(0x000000));
+const RgbwColor CylonEyeColor(HtmlColor(0x7f0000));
+const RgbwColor HarshWhite(HtmlColor(0xddddff));
+const RgbwColor ClearPixel(HtmlColor(0x000000));
 const int triggerPin = 7;
 
 const unsigned long maxCharge = 160000;
@@ -24,8 +24,8 @@ float voltage = 0;
 unsigned int VoltageSampleTime = 0;
 unsigned int VoltageSampleFrequency = 0;
 
-NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(PixelCount, PixelPin);
-NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> barrel(PixelCount2, PixelPin2);
+NeoPixelBus<NeoGrbwFeature, NeoSk6812Method> strip(PixelCount, PixelPin);
+NeoPixelBus<NeoGrbwFeature, NeoSk6812Method> barrel(PixelCount2, PixelPin2);
 
 NeoPixelAnimator animations(2); // only ever need 2 animations
 
@@ -39,7 +39,7 @@ AnimEaseFunction moveEase =
 
 void FadeAll(uint8_t darkenBy)
 {
-    RgbColor color;
+    RgbwColor color;
     for (uint16_t indexPixel = 0; indexPixel < strip.PixelCount(); indexPixel++)
     {
         color = strip.GetPixelColor(indexPixel);
@@ -148,8 +148,8 @@ void setup()
 
 void loop()
 {
-    if (voltage > 4)
-    {
+    // if (voltage > 4)
+    // {
         buttonState = digitalRead(triggerPin);
         if (buttonState)
         { // button is not pressed
@@ -208,5 +208,5 @@ void loop()
                 strip.Show();
             }
         }
-    }
+    // }
 }
